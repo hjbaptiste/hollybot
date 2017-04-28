@@ -1,0 +1,17 @@
+{
+  "name": "hollybot",
+  "version": "1.0.0",
+  "description": "Provides holiday information such as next holiday or remaining or all holidays.",
+  "main": "holly.js",
+  "dependencies": {
+    "botbuilder": "^3.6.0",
+    "restify": "^4.3.0",
+    "os":"0.1.1"
+  }, 
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node holly.js"
+  },
+  "author": "Herve Jean-Baptiste, Van Vo, Candis Curd, Michelle Usi",
+  "license": "GNU"
+}
