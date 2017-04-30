@@ -10,7 +10,8 @@ var _config = {
     LANGUAGE_UNDERSTANDING_SERVICE: {
         LUIS_API_URL: "https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/",
         LUIS_MODEL_ID: "4fdec766-2837-4b5f-be29-783b772f7e7d",
-        LUIS_API_KEY: "3c13ba4ca22e42fcb7c1b8a836e05034"
+        LUIS_API_KEY: "3c13ba4ca22e42fcb7c1b8a836e05034",
+        URL_END_STRING: "&timezoneOffset=0&verbose=true&q="
     }
 };
 exports.CONFIGURATIONS = _config;
