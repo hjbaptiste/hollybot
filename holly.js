@@ -74,7 +74,7 @@ bot.dialog('/', intents);
 // Just-say-hi intent logic
 intents.matches(/^holly|^Holly|^Holly/i, [
     function(session) {
-        session.send("Hi!, I\'m Holly the Holiday Bot.\r\nThese are some things I can help you with.  You can say:");
+        session.send("Hi!, I\'m Holly the Holiday Bot.");
 
         // "Push" the help dialog onto the dialog stack
         session.beginDialog('/help');
@@ -88,36 +88,58 @@ intents.matches(/^holly|^Holly|^Holly/i, [
 intents.onDefault(builder.DialogAction.send(""));
 
 bot.dialog('/help', function(session) {
-        session.send("Next holiday");
-        session.send("List of all holidays");
-        session.send("Remaining holidays");
-        session.endDialog("When is Labor Day?");
+        session.endDialog("These are some things I can help you with.  You can say:\n\nNext holiday\n\nList of all holidays\n\nRemaining holidays\n\nWhen is Labor Day?");
         //session.endDialog("Go ahead, I\'m listening");
     }
 );
 
 bot.dialog('/process', luisintents);
 
-var numofusholidaysleft = 0;
-for(var exKey in holidays.usholidays) {
-    numofusholidaysleft++;
- }
+var getTodaysDate = function (param) {
+    let today = new Date();
+    if (param == "date") {
+        return today;
+    } else if (param == "year") {
+        return today.getFullYear();
+    } else if (param == "month") {
+        return today.getMonth();
+    } else if (param == "day") {
+        return today.getDate();
+    }
+};
+
+var allUSHolidays = holidays.usholidays;
+var getRemainingHolidays = function(){
+    var remainingHolidaysString = "";
+    var numRemainingHolidays = 0;
+    for(key in allUSHolidays) {
+        var holiday = allUSHolidays[key];
+        if (holiday.month > getTodaysDate("month") + 1 ||
+        (holiday.month == getTodaysDate("month") + 1 && holiday.day > getTodaysDate("day"))) {
+            if (remainingHolidaysString != "") {
+                remainingHolidaysString = remainingHolidaysString + "\n\n" + holiday.name;
+            } else {
+                remainingHolidaysString = holiday.name + "\n\n";
+            }
+            numRemainingHolidays++;
+        }
+    }
+    var remainingHolidays = {"remainingHolidays": remainingHolidaysString, "countRemaining": numRemainingHolidays};
+    return remainingHolidays;
+};
+
 luisintents.matches('remainingHolidays', [
     function(session, args) {
-        var remainintent = args.intent;
-        var remainentities = args.entities;
-        var remainentity = builder.EntityRecognizer.findEntity(remainentities, 'remain');
-        var countentity = builder.EntityRecognizer.findEntity(remainentities, 'count');
-        // These are some debug statements to test what is in the variables
-        //session.send("args  = " + args);
-        //session.send("intent  = " + remainintent);
-        //session.send("args entities = " + remainentities);
-       // session.send("countentity = " + countentity);
-       // session.send("remainentity =" + remainentity);
-        if (countentity || remainentity) {
-             session.endDialog("The number of Holidays left is %s.", numofusholidaysleft);       
-        } else {
-            session.send("Sorry, I didn't understand. You can say:");
+        var remainEntities = args.entities;
+        var remainEntity = builder.EntityRecognizer.findEntity(remainEntities, 'remain');
+        var countEntity = builder.EntityRecognizer.findEntity(remainEntities, 'count');
+        if (countEntity) {
+            session.endDialog("The number of Holidays left is %s.", getRemainingHolidays().countRemaining);       
+        } else if (remainEntity) {
+            session.endDialog("The remaining Holidays are:\n\n %s", getRemainingHolidays().remainingHolidays);
+        }
+        else {
+            session.send("Sorry, I didn't understand.");
             session.beginDialog('/help');
         }
     },
