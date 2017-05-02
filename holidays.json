@@ -5,72 +5,96 @@
     {
       "name": "New Year's Day",
       "date": "01-01",
+      "month": "01",
+      "day": "01",
       "observed": "01-02",
       "public": true
     },
     {
       "name": "Groundhog Day",
       "date": "02-02",
+      "month": "02",
+      "day": "02",
       "observed": "02-02",
       "public": true
     },
     {
       "name": "Valentine's Day",
       "date": "02-14",
+      "month": "02",
+      "day": "14",
       "observed": "02-14",
       "public": true
     },
     {
       "name": "St. Patrick's Day",
       "date": "03-17",
+      "month": "03",
+      "day": "17",
       "observed": "03-17",
       "public": true
     },
     {
       "name": "Earth Day",
       "date": "04-22",
+      "month": "04",
+      "day": "22",
       "observed": "04-22",
       "public": true
     },
     {
       "name": "Independence Day",
       "date": "07-04",
+      "month": "07",
+      "day": "04",
       "observed": "07-04",
       "public": true
     },
     {
       "name": "Patriot Day",
       "date": "09-11",
+      "month": "09",
+      "day": "11",
       "observed": "09-11",
       "public": true
     },
     {
       "name": "Halloween",
       "date": "10-31",
+      "month": "10",
+      "day": "31",
       "observed": "03-17",
       "public": true
     },
     {
       "name": "Veterans' Day",
       "date": "11-11",
+      "month": "11",
+      "day": "11",
       "observed": "11-11",
       "public": true
     },
     {
       "name": "Pearl Harbor Day",
       "date": "12-07",
+      "month": "12",
+      "day": "07",
       "observed": "12-07",
       "public": true
     },
     {
       "name": "Christmas Day",
       "date": "12-25",
+      "month": "12",
+      "day": "25",
       "observed": "12-25",
       "public": true
     },
     {
       "name": "New Year's Eve",
       "date": "12-31",
+      "month": "12",
+      "day": "31",
       "observed": "12-31",
       "public": true
     }
