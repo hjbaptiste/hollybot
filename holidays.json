@@ -11,6 +11,14 @@
       "public": true
     },
     {
+      "name" : "Martin Luther King Jr. Day",
+      "date" : "01-16",
+      "month" : "01",
+      "day" : "16",
+      "observed": "01-16",
+      "public" : true
+    },
+    {
       "name": "Groundhog Day",
       "date": "02-02",
       "month": "02",
@@ -25,6 +33,14 @@
       "day": "14",
       "observed": "02-14",
       "public": true
+    },
+    {
+      "name" : "President's Day",
+      "date" : "02-20",
+      "month" : "02",
+      "day" : "20",
+      "observed": "02-20",
+      "public" : true
     },
     {
       "name": "St. Patrick's Day",
@@ -43,11 +59,27 @@
       "public": true
     },
     {
+      "name": "Memorial Day",
+      "date": "05-29",
+      "month": "05",
+      "day": "29",
+      "observed": "05-29",
+      "public": true
+    },
+    {
       "name": "Independence Day",
       "date": "07-04",
       "month": "07",
       "day": "04",
       "observed": "07-04",
+      "public": true
+    },
+    {
+      "name": "Labor Day",
+      "date": "09-04",
+      "month": "09",
+      "day": "04",
+      "observed": "09-04",
       "public": true
     },
     {
@@ -80,6 +112,22 @@
       "month": "12",
       "day": "07",
       "observed": "12-07",
+      "public": true
+    },
+    {
+      "name": "Thanksgiving Day",
+      "date": "11-23",
+      "month": "11",
+      "day": "23",
+      "observed": "11-23",
+      "public": true
+    },
+    {
+      "name": "Day After Thanksgiving Day",
+      "date": "11-24",
+      "month": "11",
+      "day": "24",
+      "observed": "11-24",
       "public": true
     },
     {

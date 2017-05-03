@@ -42,7 +42,10 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 //   https://api.projectoxford.ai/luis/v2.0/apps/[model id goes here]?subscription-key=[key goes here]
 var model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
 
+var nh_model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + "768aa6e1-11bc-4a1e-9d21-0609682b85bd" + "?subscription-key=" + "53de170d59764c95bdadf8ec27619f44" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
+
 var recognizer = new builder.LuisRecognizer(model_url);
+var nh_recognizer = new builder.LuisDialog(nh_model_url);
 
 //****************************************************************/
 // Begin intent logic setup.  An intent is an action a user wants
@@ -50,7 +53,7 @@ var recognizer = new builder.LuisRecognizer(model_url);
 // the same thing, but may be constructed differently.  We can have as
 // many as we like here.
 var textIntents = new builder.IntentDialog();
-var luisIntents = new builder.IntentDialog({ recognizers: [recognizer] });
+var luisIntents = new builder.IntentDialog({ recognizers: [recognizer, nh_recognizer] });
 
 // Create bot and add intent logic (defined later on)
 var bot = new builder.UniversalBot(connector);
@@ -128,6 +131,22 @@ var getTodaysDate = function (param) {
     }
 };
 
+/**
+ * Function to return the String day of week. The built-in getDay() function returns a numeric value from 0-6
+ */
+function getDayOfWeekString(day) {
+    var weekday = new Array(7);
+    weekday[0] = "Sunday";
+    weekday[1] = "Monday";
+    weekday[2] = "Tuesday";
+    weekday[3] = "Wednesday";
+    weekday[4] = "Thursday";
+    weekday[5] = "Friday";
+    weekday[6] = "Saturday";
+
+    return weekday[day]; 
+}
+
 var allUSHolidays = holidays.usholidays;
 
 /**
@@ -172,6 +191,7 @@ luisIntents.matches('remainingHolidays', [
     function(session, args) {
         // Get the list of Entities returned from LUIS
         var remainEntities = args.entities;
+        
         // See if what the user said has the 'remain' and the 'count' Entities
         var remainEntity = builder.EntityRecognizer.findEntity(remainEntities, 'remain');
         var countEntity = builder.EntityRecognizer.findEntity(remainEntities, 'count');
@@ -186,6 +206,41 @@ luisIntents.matches('remainingHolidays', [
             // If neither Entity was returned then inform the user and call the 'help' dialog
             session.send("Sorry, I didn't understand.");
             session.beginDialog('/help');
+        }
+    },
+    function(session) {
+        session.beginDialog('/process');
+    }
+]);
+
+/**
+ * Next holiday function 
+ * Triggered when the user resembles a request with the next holiday intent
+ */
+luisIntents.matches('nextHoliday', [
+    function(session, args) {
+        //calculate the next holiday based on today's date
+        var nextHoliday;
+        var nextHolidayDate;
+        var today = new Date();
+        var holidayFound = false;
+
+        for(var i = 0; i < allUSHolidays.length; ++i) {
+            nextHolidayDate = new Date(today.getFullYear() + "-" + allUSHolidays[i].date + " 00:00:00");
+            if(nextHolidayDate > today) {
+                nextHoliday = allUSHolidays[i];
+                holidayFound = true;
+                break;
+            }
+        }
+
+        if(holidayFound){
+            console.log("day of week:" + getDayOfWeekString(nextHolidayDate.getDay()));
+            session.endDialog("The next holiday is " + nextHoliday.name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + nextHoliday.date);
+        } else {
+            nextHolidayDate = new Date((today.getFullYear() + 1) + "-" + allUSHolidays[0].date);
+            //if no holiday is found, it means it's past or equal to the last day of the year and the next holiday will be the first one for next year
+            session.endDialog("The next holiday is " + allUSHolidays[0].name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + allUSHolidays[0].date);
         }
     },
     function(session) {
