@@ -40,9 +40,11 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 
 // The format of the model_url:  
 //   https://api.projectoxford.ai/luis/v2.0/apps/[model id goes here]?subscription-key=[key goes here]
-var model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
+var model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID 
+    + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
 
-var nh_model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + "768aa6e1-11bc-4a1e-9d21-0609682b85bd" + "?subscription-key=" + "53de170d59764c95bdadf8ec27619f44" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
+var nh_model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_MODEL_ID 
+    + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
 
 var recognizer = new builder.LuisRecognizer(model_url);
 var nh_recognizer = new builder.LuisDialog(nh_model_url);
@@ -222,11 +224,11 @@ luisIntents.matches('nextHoliday', [
         //calculate the next holiday based on today's date
         var nextHoliday;
         var nextHolidayDate;
-        var today = new Date();
+        var today = getTodaysDate("date");
         var holidayFound = false;
 
         for(var i = 0; i < allUSHolidays.length; ++i) {
-            nextHolidayDate = new Date(today.getFullYear() + "-" + allUSHolidays[i].date + " 00:00:00");
+            nextHolidayDate = new Date(today.getFullYear() + "-" + allUSHolidays[i].date);
             if(nextHolidayDate > today) {
                 nextHoliday = allUSHolidays[i];
                 holidayFound = true;
@@ -235,11 +237,10 @@ luisIntents.matches('nextHoliday', [
         }
 
         if(holidayFound){
-            console.log("day of week:" + getDayOfWeekString(nextHolidayDate.getDay()));
             session.endDialog("The next holiday is " + nextHoliday.name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + nextHoliday.date);
         } else {
-            nextHolidayDate = new Date((today.getFullYear() + 1) + "-" + allUSHolidays[0].date);
             //if no holiday is found, it means it's past or equal to the last day of the year and the next holiday will be the first one for next year
+            nextHolidayDate = new Date((today.getFullYear() + 1) + "-" + allUSHolidays[0].date);
             session.endDialog("The next holiday is " + allUSHolidays[0].name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + allUSHolidays[0].date);
         }
     },
