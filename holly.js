@@ -40,14 +40,21 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 
 // The format of the model_url:  
 //   https://api.projectoxford.ai/luis/v2.0/apps/[model id goes here]?subscription-key=[key goes here]
-var model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID 
-    + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
 
-var nh_model_url = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_MODEL_ID 
-    + "?subscription-key=" + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_API_KEY + config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
 
-var recognizer = new builder.LuisRecognizer(model_url);
-var nh_recognizer = new builder.LuisDialog(nh_model_url);
+var model_urlh = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID + "?subscription-key=" + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
+var model_urlv = 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/d7993093-7a05-43a9-8510-ab71e442e5c8?subscription-key=6e5c542c313242c38f8d5dd8e987e3d3&timezoneOffset=0&verbose=true&spellCheck=true&q=';
+var model_urlm = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_MODEL_ID + "?subscription-key=" + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_NH_API_KEY + 
+                config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.URL_END_STRING;
+
+var recognizerv = new builder.LuisRecognizer(model_urlv);
+var recognizerh = new builder.LuisRecognizer(model_urlh);
+var recognizerm = new builder.LuisRecognizer(model_urlm);
 
 //****************************************************************/
 // Begin intent logic setup.  An intent is an action a user wants
@@ -55,7 +62,8 @@ var nh_recognizer = new builder.LuisDialog(nh_model_url);
 // the same thing, but may be constructed differently.  We can have as
 // many as we like here.
 var textIntents = new builder.IntentDialog();
-var luisIntents = new builder.IntentDialog({ recognizers: [recognizer, nh_recognizer] });
+var luisIntents = new builder.IntentDialog({ recognizers: [recognizerv, recognizerh, recognizerm] });
+//var luisIntents = new builder.IntentDialog({ recognizers: [recognizerh] });
 
 // Create bot and add intent logic (defined later on)
 var bot = new builder.UniversalBot(connector);
@@ -91,12 +99,12 @@ textIntents.onDefault(builder.DialogAction.send(""));
  * match any of the intents created within the LUIS model.
  */
 luisIntents.onDefault ([
-    function () {
+    function (session) {
         // If neither Entity was returned then inform the user and call the 'help' dialog
         session.send("Sorry, I didn't understand.");
         session.beginDialog('/help');
     },
-    function () {
+    function (session) {
         session.beginDialog('/process');
     }
 ]);
@@ -156,6 +164,28 @@ var allUSHolidays = holidays.usholidays;
  * holidays that is left for the year.
  * @Return: JSON object
  */
+var getWhenHoliday = function(param){
+    var whenHoliday = "";
+    // Loop thru the all of the US Holidays
+    for(key in allUSHolidays) {
+        // Get the Holiday at the current index in the loop
+        var holiday = allUSHolidays[key];
+        if ((holiday.name).toLowerCase() === param) {
+            // Create a JSON object representing the Holiday
+            whenHoliday = {"name": holiday.name , "date": holiday.date,
+            "month": holiday.month, "day": holiday.day};
+            break;
+        }
+    }
+    return whenHoliday;
+};
+
+
+/**
+ * @Description:Returns the a JSON object containing the list of remaining holidays and the number of
+ * holidays that is left for the year.
+ * @Return: JSON object
+ */
 var getRemainingHolidays = function(){
     var remainingHolidaysString = "";
     var numRemainingHolidays = 0;
@@ -165,14 +195,9 @@ var getRemainingHolidays = function(){
         var holiday = allUSHolidays[key];
         if (holiday.month > getTodaysDate("month") + 1 ||
         (holiday.month == getTodaysDate("month") + 1 && holiday.day > getTodaysDate("day"))) {
-            // If this isn't the first holiday found then append the new line character to
-            // the end of the string that contains the list of holidays that have been found
-            // and add the current one to it.
-            if (remainingHolidaysString != "") {
-                remainingHolidaysString = remainingHolidaysString + "\n\n" + holiday.name;
-            } else {
-                remainingHolidaysString = holiday.name + "\n\n";
-            }
+            // Append the new line character to the end of the string that contains the list 
+            // of holidays that have been found and add the current one to it.
+            remainingHolidaysString += "\n\n" + holiday.name;
             numRemainingHolidays++;
         }
     }
@@ -180,6 +205,30 @@ var getRemainingHolidays = function(){
     var remainingHolidays = {"remainingHolidays": remainingHolidaysString, "countRemaining": numRemainingHolidays};
     return remainingHolidays;
 };
+
+
+/**
+ * @Description: Triggered when user says something which matches the 'allHolidays'
+ * intent.  It loops through the list of US Holidays in the holidays.json file and
+ * send them to the current conversation.
+ */
+luisIntents.matches('allHolidays', [
+    function (session, args) {
+        var allHolidays = '';
+        // Loop thru the all of the US Holidays
+        for (var i in allUSHolidays) {
+            // Append the new line character to the end of the string that contains the list 
+            // of holidays that have been found and add the current one to it.
+            allHolidays += '\n\n'+allUSHolidays[i].name;
+        }
+        // Send the entire list of Holidays to the conversation
+        session.send("These are ALL US Holidays: %s.", allHolidays);
+    },
+    function (session) {
+        session.beginDialog('/process');
+    }
+]);
+
 
 /**
  * @Description: Triggered when user says something which matches the 'remainingHolidays'
@@ -199,10 +248,10 @@ luisIntents.matches('remainingHolidays', [
         var countEntity = builder.EntityRecognizer.findEntity(remainEntities, 'count');
         if (countEntity) {
             // If the 'count' Entity is returned then have Holly say how many Holidays are remaining
-            session.endDialog("The number of Holidays left is %s.", getRemainingHolidays().countRemaining);       
+            session.send("The number of Holidays left is %s.", getRemainingHolidays().countRemaining);       
         } else if (remainEntity) {
             // If the 'remain' Entity is returned then have Holly say the Holidays that are remaining
-            session.endDialog("The remaining Holidays are:\n\n %s", getRemainingHolidays().remainingHolidays);
+            session.send("The remaining Holidays are:\n\n %s", getRemainingHolidays().remainingHolidays);
         }
         else {
             // If neither Entity was returned then inform the user and call the 'help' dialog
@@ -237,11 +286,64 @@ luisIntents.matches('nextHoliday', [
         }
 
         if(holidayFound){
-            session.endDialog("The next holiday is " + nextHoliday.name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + nextHoliday.date);
+            session.send("The next holiday is " + nextHoliday.name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + nextHoliday.date);
         } else {
             //if no holiday is found, it means it's past or equal to the last day of the year and the next holiday will be the first one for next year
             nextHolidayDate = new Date((today.getFullYear() + 1) + "-" + allUSHolidays[0].date);
-            session.endDialog("The next holiday is " + allUSHolidays[0].name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + allUSHolidays[0].date);
+            session.send("The next holiday is " + allUSHolidays[0].name + " on " + getDayOfWeekString(nextHolidayDate.getDay()) + ", " + allUSHolidays[0].date);
+         }
+    },
+    function(session) {
+        session.beginDialog('/process');
+    }
+]);
+
+/**
+ * @Description: Triggered when user says something which matches the 'whenHoliday'
+ * intent.
+ * 
+ * It call the 'getRemainingHolidays' function to calculate what the remaining holidays are and how many
+ * are left for the year.
+ */
+luisIntents.matches('whenHoliday', [
+    function(session, args) {
+        // Get the list of Entities returned from LUIS
+        var whenEntities = args.entities;   
+        var isWhenEntity = false;
+        var isHolidayEntity = false;
+        var when = "";
+        var holiday = "";
+        for(key in whenEntities) {
+            // Get the Holiday at the current index in the loop
+            var entity = whenEntities[key];
+            // See if what the user said has the 'when' and the 'holiday' Entities
+            if (entity.type == 'when') {
+                isWhenEntity = true;
+                when = entity.entity;
+            } else if (entity.type == 'holiday') {
+                isHolidayEntity = true;
+                holiday = entity.entity;
+            }
+        }
+        if (isWhenEntity && isHolidayEntity) {
+            var whenHoliday = getWhenHoliday(holiday);
+            var botResponse = "";
+            var responseVar = "";
+            if (when == "date" || when == "when") {
+                responseVar = (whenHoliday.name, whenHoliday.date);
+                botResponse = "%s is on %s";     
+            } else if(when == "month") {
+                responseVar = (whenHoliday.name, whenHoliday.month);
+                botResponse = "%s is on %s";
+            } else if(when == "day") {
+                responseVar = (whenHoliday.name, whenHoliday.day);
+                botResponse = "%s is on the %s";
+            }
+            session.send(botResponse % responseVar); 
+        } else {
+            // If neither Entity was returned then inform the user and call the 'help' dialog
+            session.send("Sorry, I didn't understand.");
+            session.beginDialog('/help');
         }
     },
     function(session) {
