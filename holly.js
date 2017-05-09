@@ -1,47 +1,47 @@
-//=========================================================
-// Bot for demonstrating Cognitive Services API calls
-//   - menu dialogs based on:  https://github.com/Microsoft/BotBuilder/blob/master/Node/examples/basics-menus/app.js
-//=========================================================
+/*-----------------------------------------------------------------------------
+This template demonstrates how to use an IntentDialog with a LuisRecognizer to add 
+natural language support to a bot. 
+For a complete walkthrough of creating this type of bot see the article at
+http://docs.botframework.com/builder/node/guides/understanding-natural-language/
+-----------------------------------------------------------------------------*/
+"use strict";
+var builder = require("botbuilder");
+var botbuilder_azure = require("botbuilder-azure");
 
-var restify = require('restify');
-var builder = require('botbuilder');
-var endOfLine = require('os').EOL;
 var config = require('./configuration');
-var holidays = require('./holidays'); // no need to add the .json extension
+var holidays = require('./holidays');
 
-/******** FOR USE WITH BOT EMULATOR AND/OR FOR DEPLOYMENT *********
-*/
+var useEmulator = (process.env.NODE_ENV == 'development');
+//Comment out this line below in azure
+useEmulator = true;
 
-// Get secrets from server environment or settings in local file
-var botConnectorOptions = { 
-    appId: config.CONFIGURATIONS.CHAT_CONNECTOR.APP_ID, 
-    appPassword: config.CONFIGURATIONS.CHAT_CONNECTOR.APP_PASSWORD
-};
-
-// Create bot
-var connector = new builder.ChatConnector(botConnectorOptions);
-
-// Setup Restify Server
-var server = restify.createServer();
-
-// Handle Bot Framework messages
-server.post('/api/messages', connector.listen());
-
-// Serve a static web page - for testing deployment
-server.get(/.*/, restify.serveStatic({
-	'directory': '.',
-	'default': 'index.html'
-}));
-
-// Listen on a standard port (this will be the port for local emulator and cloud)
-server.listen(process.env.port || process.env.PORT || 3978, function () {
-    console.log('%s listening to %s', server.name, server.url); 
+var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
+    //appId: b6f8a780-2381-4e03-a969-c4a977150272, 
+    //appPassword: 9YiThDstkgvVuiXhNeJBRNj,
+    appId: process.env['MicrosoftAppId'],
+    appPassword: process.env['MicrosoftAppPassword'],
+    stateEndpoint: process.env['BotStateEndpoint'],
+    openIdMetadata: process.env['BotOpenIdMetadata']
 });
+
+var bot = new builder.UniversalBot(connector);
+
+if (useEmulator) {
+    var restify = require('restify');
+    var server = restify.createServer();
+    server.listen(3978, function() {
+        console.log('test bot endpont at http://localhost:3978/api/messages');
+    });
+    server.post('/api/messages', connector.listen());    
+} else {
+    console.log("Server listening to default endpoint");
+    module.exports = { default: connector.listen() }
+}
 
 // The format of the model_url:  
 //   https://api.projectoxford.ai/luis/v2.0/apps/[model id goes here]?subscription-key=[key goes here]
 
-
+//Initialize LUIS intent dialog
 var model_urlh = config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_URL + 
                 config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_MODEL_ID + "?subscription-key=" + 
                 config.CONFIGURATIONS.LANGUAGE_UNDERSTANDING_SERVICE.LUIS_API_KEY + 
@@ -56,48 +56,8 @@ var recognizerv = new builder.LuisRecognizer(model_urlv);
 var recognizerh = new builder.LuisRecognizer(model_urlh);
 var recognizerm = new builder.LuisRecognizer(model_urlm);
 
-//****************************************************************/
-// Begin intent logic setup.  An intent is an action a user wants
-// to perform.  They, in general, are grouped as expressions that mean
-// the same thing, but may be constructed differently.  We can have as
-// many as we like here.
-var textIntents = new builder.IntentDialog();
 var luisIntents = new builder.IntentDialog({ recognizers: [recognizerv, recognizerh, recognizerm] });
-//var luisIntents = new builder.IntentDialog({ recognizers: [recognizerh] });
 
-// Create bot and add intent logic (defined later on)
-var bot = new builder.UniversalBot(connector);
-
-// Maps the 'root' dialog to the test intents.
-bot.dialog('/', textIntents);
-
-// Maps the 'process' dialog to the LUIS intents.
-bot.dialog('/process', luisIntents);
-
-/**
- * @Description: Wakes up Holly bot only if user says 'holly' prior to saying anything else
- */
-textIntents.matches(/^holly|^Holly|^Holly/i, [
-    function(session) {
-        session.send("Hi!, I\'m Holly the Holiday Bot.");
-
-        // "Push" the help dialog onto the dialog stack
-        session.beginDialog('/help');
-    },
-    function(session) {
-         session.beginDialog('/process');
-    }
-]);
-
-/**
- * Default text intent when what user said to wake up Holly bot is not matched
- */ 
-textIntents.onDefault(builder.DialogAction.send(""));
-
-/**
- * @Description: Default LUIS intent when the funtionality the user wants to use doesn't
- * match any of the intents created within the LUIS model.
- */
 luisIntents.onDefault ([
     function (session) {
         // If neither Entity was returned then inform the user and call the 'help' dialog
@@ -109,12 +69,45 @@ luisIntents.onDefault ([
     }
 ]);
 
+bot.dialog('/process', luisIntents);
+
+// Make sure you add code to validate these fields
+var luisAppId = process.env.LuisAppId;
+var luisAPIKey = process.env.LuisAPIKey;
+var luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.microsoft.com';
+
+var LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v1/application?id=' + luisAppId + '&subscription-key=' + luisAPIKey;
+
+// Main dialog with LUIS
+var recognizer = new builder.LuisRecognizer(LuisModelUrl);
+var intents = new builder.IntentDialog({ recognizers: [recognizer]})
+
+.onDefault((session) => {
+    session.send('Sorry, I did not understand \'%s\'.', session.message.text);
+});
+
+bot.dialog('/', intents);
+/*
+.matches('<yourIntent>')... See details at http://docs.botframework.com/builder/node/guides/understanding-natural-language/
+*/
+intents.matches(/^holly/i, 
+    function (session) {
+        session.send("Hi!, I\'m Holly the Holiday Bot.");
+
+        // "Push" the help dialog onto the dialog stack
+        session.beginDialog('/help');
+    },
+    function(session) {
+         session.beginDialog('/process');
+    }
+);
+
 /**
  * @Descripton: Informs the uer what functions that can be performed.
  */
 bot.dialog('/help', function(session) {
-        session.endDialog("These are some things I can help you with.  You can say:\n\nNext holiday\n\nList of all holidays\n\nRemaining holidays\n\nWhen is Labor Day?");
-        //session.endDialog("Go ahead, I\'m listening");
+        session.send("These are some things I can help you with.  You can say:\n\nNext holiday\n\nList of all holidays\n\nRemaining holidays\n\nWhen is Labor Day?");
+        session.beginDialog('/process');
     }
 );
 
@@ -124,7 +117,7 @@ bot.dialog('/help', function(session) {
  */
 var getTodaysDate = function (param) {
     // Create a new Date object representing today's date
-    let today = new Date();
+    var today = new Date();
     if (param == "date") {
         // Return current date
         return today;
@@ -166,11 +159,13 @@ var allUSHolidays = holidays.usholidays;
  */
 var getWhenHoliday = function(param){
     var whenHoliday = "";
+    console.log("Inside when holiday function:" + param);
+        
     // Loop thru the all of the US Holidays
-    for(key in allUSHolidays) {
+    for(var key in allUSHolidays) {
         // Get the Holiday at the current index in the loop
         var holiday = allUSHolidays[key];
-        if ((holiday.name).toLowerCase() === param) {
+        if ((holiday.name).toLowerCase() == param) {
             // Create a JSON object representing the Holiday
             whenHoliday = {"name": holiday.name , "date": holiday.date,
             "month": holiday.month, "day": holiday.day};
@@ -190,7 +185,7 @@ var getRemainingHolidays = function(){
     var remainingHolidaysString = "";
     var numRemainingHolidays = 0;
     // Loop thru the all of the US Holidays
-    for(key in allUSHolidays) {
+    for(var key in allUSHolidays) {
         // Get the Holiday at the current index in the loop
         var holiday = allUSHolidays[key];
         if (holiday.month > getTodaysDate("month") + 1 ||
@@ -313,7 +308,7 @@ luisIntents.matches('whenHoliday', [
         var isHolidayEntity = false;
         var when = "";
         var holiday = "";
-        for(key in whenEntities) {
+        for(var key in whenEntities) {
             // Get the Holiday at the current index in the loop
             var entity = whenEntities[key];
             // See if what the user said has the 'when' and the 'holiday' Entities
