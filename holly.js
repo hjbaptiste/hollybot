@@ -159,7 +159,6 @@ var allUSHolidays = holidays.usholidays;
  */
 var getWhenHoliday = function(param){
     var whenHoliday = "";
-    console.log("Inside when holiday function:" + param);
         
     // Loop thru the all of the US Holidays
     for(var key in allUSHolidays) {
